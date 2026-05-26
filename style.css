@@ -103,12 +103,14 @@ header .title {
   font-weight: 700;
   color: #3a5a28;
   letter-spacing: 1px;
+  white-space: nowrap;
 }
 header .stats {
   display: flex;
   gap: 14px;
   font-size: 13px;
   color: var(--text-secondary);
+  white-space: nowrap;
 }
 header .stats span {
   display: flex;
@@ -143,6 +145,7 @@ header .stats span {
   font-family: var(--font-body);
   position: relative;
   text-transform: none;
+  white-space: nowrap;
 }
 .btn::after {
   content: '';
@@ -165,6 +168,7 @@ header .stats span {
 
 #user-bar {
   padding: 6px 0;
+  white-space: nowrap;
 }
 
 .btn-primary {
@@ -216,6 +220,7 @@ header .stats span {
   font-size: 14px;
   color: var(--accent);
   font-family: var(--font-title);
+  white-space: nowrap;
 }
 .back-bar:hover { color: #3a5a28; }
 
@@ -299,6 +304,9 @@ header .stats span {
   font-weight: 700;
   color: var(--text);
   margin-bottom: 3px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .level-card .unit-words {
   font-size: 10px;
@@ -539,6 +547,9 @@ header .stats span {
   font-size: 13px;
   color: var(--text-secondary);
   font-family: var(--font-title);
+  white-space: nowrap;
+  gap: 6px;
+  overflow-x: auto;
 }
 
 .progress-hearts {
@@ -581,6 +592,10 @@ header .stats span {
   justify-content: center;
   margin-bottom: 16px;
   flex-wrap: wrap;
+}
+.test-actions .btn {
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .result-card {
@@ -629,6 +644,10 @@ header .stats span {
   justify-content: center;
   flex-wrap: wrap;
   margin-top: 10px;
+}
+.result-actions .btn {
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .mistake-list {
@@ -718,10 +737,16 @@ header .stats span {
   font-size: 11px;
   color: var(--gold);
   letter-spacing: 4px;
+  white-space: nowrap;
 }
 
 @media (max-width: 400px) {
   .level-grid { grid-template-columns: repeat(3, 1fr); }
   .letter-box { width: 38px; height: 46px; font-size: 18px; }
   .letter-boxes { gap: 5px; }
+  .btn { padding: 8px 14px; font-size: 13px; }
+  .btn-small { padding: 5px 10px; font-size: 12px; }
+  header .title { font-size: 16px; }
+  header .stats { font-size: 11px; gap: 8px; }
+  .test-info { font-size: 11px; gap: 4px; }
 }
