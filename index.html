@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>Word Quest - 海拉鲁单词冒险</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div class="container">
+    <header>
+      <span class="title">◆ 海拉鲁单词冒险 ◆</span>
+      <div class="stats" id="header-stats">
+        <span class="streak-fire">🔥 <span id="streak-count">0</span></span>
+        <span>❤️ <span id="total-count">0</span></span>
+      </div>
+    </header>
+    <div id="user-bar" style="display:none;text-align:center;margin-bottom:12px;font-size:12px;color:var(--text-secondary);">
+      冒险者：<strong id="header-username" style="color:#3a5a28;"></strong>
+      <span style="margin:0 6px;color:var(--border);">|</span>
+      <button class="btn-ghost" data-action="switch-user" style="font-size:11px;padding:2px 6px;">切换存档</button>
+    </div>
+
+    <div id="view-login" class="view active">
+      <div style="text-align:center;padding:40px 20px 20px;">
+        <div style="font-family:var(--font-title);font-size:28px;font-weight:700;color:#3a5a28;margin-bottom:8px;">⚔ 冒险开始 ⚔</div>
+        <div style="font-size:14px;color:var(--text-secondary);margin-bottom:24px;">输入你的名字，踏上单词之旅</div>
+      </div>
+      <div style="max-width:300px;margin:0 auto;text-align:center;">
+        <div id="saved-users" style="margin-bottom:16px;"></div>
+        <div style="display:flex;gap:8px;">
+          <input type="text" id="login-input" placeholder="请输入冒险者名字"
+            style="flex:1;padding:10px 14px;border:2px solid var(--border);border-radius:var(--radius);font-size:15px;font-family:var(--font-title);background:var(--card);color:var(--text);outline:none;"
+            onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'">
+          <button class="btn btn-primary" data-action="do-login">出发！</button>
+        </div>
+        <div style="font-size:11px;color:var(--text-tertiary);margin-top:10px;">输入名字后按回车即可出发</div>
+      </div>
+    </div>
+
+    <div id="view-map" class="view">
+      <div id="level-container"></div>
+      <div style="text-align:center;margin-top:12px;">
+        <div class="sword-divider">⚔ ⚔ ⚔</div>
+        <button class="btn btn-secondary btn-small" data-view="mistakes">📜 错题卷轴</button>
+      </div>
+    </div>
+
+    <div id="view-learn" class="view">
+      <div class="back-bar" data-view="map">◂ 返回地图</div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;padding:0 4px;">
+        <span style="font-family:var(--font-title);font-weight:700;font-size:15px;color:#3a5a28;" id="learn-unit-name"></span>
+        <span style="font-size:13px;color:var(--text-secondary);" id="learn-difficulty"></span>
+      </div>
+
+      <div class="word-card">
+        <div class="en" id="learn-en"></div>
+        <div class="phonetic" id="learn-phonetic"></div>
+        <div class="zh" id="learn-zh"></div>
+        <button class="speak-btn" data-action="speak-current">🔊</button>
+      </div>
+
+      <div class="card-nav">
+        <button id="btn-prev-card" data-action="prev-card">◀</button>
+        <span class="page-indicator" id="learn-page"></span>
+        <button id="btn-next-card" data-action="next-card">▶</button>
+      </div>
+
+      <div style="text-align:center;">
+        <button class="btn btn-primary" data-action="start-test">⚔ 进入试炼</button>
+      </div>
+    </div>
+
+    <div id="view-test" class="view">
+      <div class="back-bar" data-view="map">◂ 返回地图</div>
+      <div class="test-info">
+        <span id="test-title"></span>
+        <span id="test-difficulty"></span>
+        <span id="test-progress"></span>
+        <span>🏆 <span id="test-score">0</span></span>
+      </div>
+
+      <div class="test-prompt">
+        <div class="prompt-label cn" id="prompt-label"></div>
+        <div class="prompt-text" id="prompt-text"></div>
+        <div class="listen-area" id="listen-area" style="display:none;">
+          <button class="speak-circle" data-action="relisten">🔊</button>
+          <button class="relisten-link" data-action="relisten">再听一遍</button>
+        </div>
+      </div>
+
+      <div class="hint-msg" id="test-hint"></div>
+      <div class="feedback-msg" id="feedback-msg"></div>
+
+      <div class="letter-boxes" id="letter-boxes"></div>
+      <div id="progress-bar" class="progress-bar"></div>
+
+      <div class="test-actions">
+        <button class="btn btn-primary" id="btn-submit" data-action="submit-answer">⚔ 提交</button>
+        <button class="btn btn-primary" id="btn-continue" data-action="continue-after-answer" style="display:none;">继续</button>
+        <button class="peek-btn" id="btn-peek" data-action="peek" style="display:none;">🔍 偷看</button>
+      </div>
+    </div>
+
+    <div id="view-result" class="view">
+      <div class="result-card">
+        <div class="result-emoji" id="result-emoji"></div>
+        <div class="result-title" id="result-title"></div>
+        <div class="result-difficulty bronze" id="result-difficulty"></div>
+        <div class="result-score" id="result-score"></div>
+        <div id="result-wrong"></div>
+        <div class="sword-divider">⚔ ⚔ ⚔</div>
+        <div class="result-actions">
+          <button class="btn btn-primary" id="result-next">继续冒险</button>
+          <button class="btn btn-secondary" id="result-retry">再来一次</button>
+          <button class="btn btn-secondary" id="result-map">返回地图</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="view-mistakes" class="view">
+      <div class="back-bar" data-view="map">◂ 返回地图</div>
+      <div style="font-family:var(--font-title);font-size:16px;font-weight:700;margin-bottom:14px;color:#3a5a28;">📜 错题卷轴</div>
+      <ul class="mistake-list" id="mistake-list"></ul>
+    </div>
+  </div>
+
+<script src="js/words.js"></script>
+<script src="js/speech.js"></script>
+<script src="js/storage.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
