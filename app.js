@@ -115,6 +115,8 @@ const App = {
     if (userBar) userBar.style.display = view === 'login' ? 'none' : 'block';
     if (view === 'map') this.renderMap();
     if (view === 'mistakes') this.renderMistakes();
+    if (view === 'achievements') this.renderAchievements();
+    if (view === 'shop') this.renderShop();
     this.updateHeader();
   },
 
@@ -123,9 +125,11 @@ const App = {
     const streakEl = document.getElementById('streak-count');
     const totalEl = document.getElementById('total-count');
     const userNameEl = document.getElementById('header-username');
+    const rupeeEl = document.getElementById('header-rupees');
     if (streakEl) streakEl.textContent = Storage.getCheckinStreak();
     if (totalEl) totalEl.textContent = Storage.getTotalCheckins();
     if (userNameEl) userNameEl.textContent = Storage.currentUser;
+    if (rupeeEl) rupeeEl.textContent = Storage.getRupees();
   },
 
   renderMap() {
@@ -305,6 +309,11 @@ const App = {
         const input = document.createElement('input');
         input.type = 'text';
         input.maxLength = 1;
+        input.autocomplete = 'off';
+        input.autocorrect = 'off';
+        input.autocapitalize = 'off';
+        input.spellcheck = false;
+        input.inputMode = 'text';
         input.className = 'letter-box';
         input.style.textAlign = 'center';
         input.style.textTransform = 'lowercase';
@@ -499,16 +508,121 @@ const App = {
   finishTest() {
     this.state.testComplete = true;
     const passed = this.state.testScore >= 8;
-    if (passed) Storage.recordClear(this.state.currentUnit.id, this.state.currentDifficulty);
+    this.state.rupeesEarned = 0;
+    if (passed) {
+      Storage.recordClear(this.state.currentUnit.id, this.state.currentDifficulty);
+      this.markMasteredWords();
+      this.rewardRupees();
+      this.checkAchievements();
+      this.unlockNextUnit();
+    }
     Storage.checkin();
+    this.dailyEggCheck();
     this.switchView('result');
     this.renderResult(passed);
   },
 
-  renderResult(passed) {
+  markMasteredWords() {
+    if (this.state.currentDifficulty !== 'gold') return;
+    const unitId = this.state.currentUnit.id;
+    this.state.testResults.forEach(r => {
+      if (r.correct) Storage.markWordMastered(unitId, r.word);
+    });
+  },
+
+  unlockNextUnit() {
+    const curId = this.state.currentUnit.id;
+    const idx = this.units.findIndex(u => u.id === curId);
+    if (idx === -1) return;
+    const next = this.units[idx + 1];
+    if (!next) return;
+
+    const masteryRate = Storage.getMasteryRate(curId, this.state.currentUnit.words.length);
+    if (masteryRate >= 0.8) {
+      Storage.unlockUnit(next.id);
+    }
+  },
+
+  rewardRupees() {
+    let r = 10;
+    if (this.state.currentDifficulty === 'gold') r = 20;
+    if (this.state.testScore === 10) r = 30;
+    const streak = Storage.getCheckinStreak();
+    r += streak * 3;
+    const data = Storage.load();
+    const isFirstClear = !(data.progress[this.state.currentUnit.id] && data.progress[this.state.currentUnit.id].status === 'completed');
+    if (isFirstClear) r += 50;
+    this.state.rupeesEarned = r;
+    Storage.addRupees(r);
+  },
+
+  checkAchievements() {
+    const checks = [
+      { id: 'first_test', name: '\u521D\u5FC3\u4E4B\u76FE', cond: true },
+      { id: 'clear_village', name: '\u52C7\u8005\u4E4B\u5251', cond: this.state.currentUnit.id === '7a_village' },
+      { id: 'perfect', name: '\u795E\u5C04\u624B\u8155\u5E26', cond: this.state.testScore === 10 },
+      { id: 'streak7', name: '\u5FC3\u4E4B\u5BB9\u5668', cond: Storage.getCheckinStreak() >= 7 },
+      { id: 'reach_gold', name: '\u5927\u5E08\u4E4B\u5251', cond: this.state.currentDifficulty === 'gold' },
+      { id: 'peek_win', name: '\u5E78\u8FD0\u8349', cond: this.state.peekRemaining < 2 && this.state.testScore >= 8 },
+      { id: 'streak30', name: '\u827E\u6CE2\u5A1C', cond: Storage.getCheckinStreak() >= 30 },
+    ];
+    let totalMastered = 0;
+    Object.values(Storage.load().progress).forEach(p => {
+      if (p.wordMastery) totalMastered += Object.values(p.wordMastery).filter(Boolean).length;
+    });
+    checks.push({ id: 'master100', name: '\u8D24\u8005\u4E4B\u4E66', cond: totalMastered >= 100 });
+    checks.push({ id: 'master500', name: '\u4E09\u89D2\u529B\u91CF', cond: totalMastered >= 500 });
+
+    checks.forEach(c => {
+      if (c.cond && Storage.unlockAchievement(c.id)) {
+        this.state.newAchievement = c.name;
+      }
+    });
+  },
+
+  dailyEggCheck() {
+    const today = new Date().toISOString().split('T')[0];
+    let egg = Storage.getDailyEgg();
+    if (!egg || egg.date !== today) {
+      const roll = Math.random();
+      if (roll < 0.2) egg = { date: today, type: 'double', text: '\u53CC\u500D\u5362\u6BD4\u65E5\uFF01\u4ECA\u5929\u6240\u6709\u6536\u5165\u7FFB\u500D' };
+      else if (roll < 0.4) egg = { date: today, type: 'peek3', text: '\u514D\u8D39\u5077\u770B\u00D73\uFF01' };
+      else if (roll < 0.55) egg = { date: today, type: 'skip1', text: '\u514D\u7B54\u4E00\u9898\uFF01' };
+      else if (roll < 0.7) egg = { date: today, type: 'bonus30', text: '\u9690\u85CF\u6311\u6218\uFF1A\u5B8C\u6210\u4ECA\u5929\u6D4B\u8BD5\u989D\u5916+30\u5362\u6BD4' };
+      else egg = { date: today, type: 'small5', text: '\u5B89\u6170\u5956+5\u5362\u6BD4' };
+      Storage.setDailyEgg(egg);
+      if (egg.type === 'small5') Storage.addRupees(5);
+    }
+    this.state.dailyEgg = egg;
+  },
     document.getElementById('result-emoji').textContent = passed ? '\uD83C\uDF89' : '\uD83D\uDCAA';
     document.getElementById('result-title').textContent = passed ? '\u8BD5\u70BC\u901A\u8FC7\uFF01' : '\u7EE7\u7EED\u52A0\u6CB9\uFF01';
     document.getElementById('result-score').textContent = '\u5F97\u5206\uFF1A' + this.state.testScore + ' / ' + this.state.testQuestions.length + '\uFF08\u9700 \u2265 8 \u901A\u5173\uFF09';
+    const totalWords = this.state.currentUnit.words.length;
+    const masteryRate = Storage.getMasteryRate(this.state.currentUnit.id, totalWords);
+    const masteryPct = Math.round(masteryRate * 100);
+    const masteryEl = document.getElementById('result-mastery');
+    masteryEl.textContent = '\u8BCD\u5E93\u638C\u63E1\u7387\uFF1A' + masteryPct + '% (' + Math.round(masteryRate * totalWords) + '/' + totalWords + ') \uFF08\u9700 \u2265 80% \u89E3\u9501\u4E0B\u4E00\u5173\uFF09';
+    masteryEl.style.display = 'block';
+
+    const rupeeMsg = document.getElementById('result-rupees');
+    if (this.state.rupeesEarned > 0) {
+      rupeeMsg.textContent = '+ ' + this.state.rupeesEarned + ' \u5362\u6BD4 = \u00A5' + (this.state.rupeesEarned / 10);
+      rupeeMsg.style.display = 'block';
+    } else { rupeeMsg.style.display = 'none'; }
+
+    const achMsg = document.getElementById('result-achievement');
+    if (this.state.newAchievement) {
+      achMsg.textContent = '\uD83C\uDFC6 \u65B0\u6210\u5C31\u89E3\u9501\uFF1A' + this.state.newAchievement;
+      achMsg.style.display = 'block';
+      this.state.newAchievement = null;
+    } else { achMsg.style.display = 'none'; }
+
+    const eggMsg = document.getElementById('result-egg');
+    if (this.state.dailyEgg) {
+      eggMsg.textContent = '\uD83C\uDF81 \u4ECA\u65E5\u5F69\u86CB\uFF1A' + this.state.dailyEgg.text;
+      eggMsg.style.display = 'block';
+    } else { eggMsg.style.display = 'none'; }
     const diff = this.state.currentDifficulty;
     const diffEl = document.getElementById('result-difficulty');
     diffEl.textContent = diff === 'bronze' ? '\u9752\u94DC' : diff === 'silver' ? '\u767D\u94F6' : '\u9EC4\u91D1';
@@ -551,6 +665,55 @@ const App = {
     if (!el) return;
     if (mistakes.length === 0) { el.innerHTML = '<div class="empty-state">\u8FD8\u6CA1\u6709\u9519\u9898\uFF0C\u7EE7\u7EED\u52A0\u6CB9\uFF01</div>'; return; }
     el.innerHTML = mistakes.map(m => '<li class="mistake-item"><span class="word">' + m.word + '</span><span style="display:flex;align-items:center;gap:8px;"><span class="count">\u9519 ' + m.count + ' \u6B21</span><button class="btn btn-small btn-secondary" onclick="Speech.speak(\'' + m.word + '\')">\uD83D\uDD0A</button></span></li>').join('');
+  },
+
+  renderAchievements() {
+    const all = [
+      { id: 'first_test', name: '\u521D\u5FC3\u4E4B\u76FE', icon: '\uD83D\uDEE1\uFE0F', desc: '\u5B8C\u6210\u7B2C\u4E00\u6B21\u6D4B\u8BD5' },
+      { id: 'clear_village', name: '\u52C7\u8005\u4E4B\u5251', icon: '\u2694\uFE0F', desc: '\u901A\u5173\u65B0\u624B\u6751' },
+      { id: 'perfect', name: '\u795E\u5C04\u624B\u8155\u5E26', icon: '\uD83C\uDFAF', desc: '\u4E00\u6B21\u6D4B\u8BD510\u9898\u5168\u5BF9' },
+      { id: 'streak7', name: '\u5FC3\u4E4B\u5BB9\u5668', icon: '\uD83D\uDC9A', desc: '\u8FDE\u7EED\u6253\u53617\u5929' },
+      { id: 'reach_gold', name: '\u5927\u5E08\u4E4B\u5251', icon: '\uD83D\uDDE1\uFE0F', desc: '\u4EFB\u4E00\u5173\u5361\u8FBE\u5230\u9EC4\u91D1\u6BB5\u4F4D' },
+      { id: 'peek_win', name: '\u5E78\u8FD0\u8349', icon: '\uD83C\uDF40', desc: '\u4F7F\u7528\u5077\u770B\u540E\u4ECD\u7136\u901A\u5173' },
+      { id: 'streak30', name: '\u827E\u6CE2\u5A1C', icon: '\uD83D\uDC0E', desc: '\u8FDE\u7EED\u6253\u536130\u5929' },
+      { id: 'master100', name: '\u8D24\u8005\u4E4B\u4E66', icon: '\uD83D\uDCDC', desc: '\u7D2F\u8BA1\u638C\u63E1100\u4E2A\u5355\u8BCD' },
+      { id: 'master500', name: '\u4E09\u89D2\u529B\u91CF', icon: '\uD83D\uDC8E', desc: '\u7D2F\u8BA1\u638C\u63E1500\u4E2A\u5355\u8BCD' },
+    ];
+    const unlocked = Storage.getAchievements();
+    const el = document.getElementById('achievement-list');
+    if (!el) return;
+    el.innerHTML = all.map(a => {
+      const got = !!unlocked[a.id];
+      return '<div class="mistake-item" style="opacity:' + (got ? '1' : '0.4') + ';filter:' + (got ? 'none' : 'grayscale(0.8)') + ';">' +
+        '<span style="display:flex;align-items:center;gap:8px;"><span style="font-size:24px;">' + a.icon + '</span><span><strong>' + a.name + '</strong><br><small style="color:var(--text-tertiary)">' + a.desc + '</small></span></span>' +
+        '<span>' + (got ? '\u2705' : '\uD83D\uDD12') + '</span></div>';
+    }).join('');
+  },
+
+  renderShop() {
+    const rupees = Storage.getRupees();
+    const exchanges = Storage.getExchanges();
+    const el = document.getElementById('shop-content');
+    if (!el) return;
+    el.innerHTML =
+      '<div style="text-align:center;padding:20px;background:var(--card);border:2px solid var(--gold);border-radius:var(--radius);margin-bottom:16px;">' +
+      '<div style="font-size:40px;margin-bottom:8px;">\uD83D\uDCB0</div>' +
+      '<div style="font-size:28px;font-weight:700;color:#3a5a28;">' + rupees + ' \u5362\u6BD4</div>' +
+      '<div style="font-size:14px;color:var(--text-secondary);">= \u00A5' + (rupees / 10) + '</div>' +
+      '</div>' +
+      '<div style="margin-bottom:12px;font-size:13px;color:var(--text-secondary);">\u6C47\u7387\uFF1A10\u5362\u6BD4 = \u00A51 \u96F6\u82B1\u94B1</div>' +
+      '<button class="btn btn-primary" style="width:100%;" onclick="App.doExchange()" ' + (rupees < 10 ? 'disabled' : '') + '>\u7533\u8BF7\u5151\u6362 \u00A5' + Math.floor(rupees / 10) + '</button>' +
+      (exchanges.length > 0 ? '<div style="margin-top:20px;font-size:14px;font-weight:700;color:#3a5a28;">\u5151\u6362\u8BB0\u5F55</div>' +
+      exchanges.slice(-5).reverse().map(e => '<div style="padding:8px;background:var(--card);border:1px solid var(--border);border-radius:var(--radius-sm);margin-top:6px;font-size:13px;">' +
+      e.date + ' \u00B7 ' + e.rupees + '\u5362\u6BD4 \u2192 \u00A5' + e.yuan + '</div>').join('') : '');
+  },
+
+  doExchange() {
+    const rupees = Storage.getRupees();
+    if (rupees < 10) return;
+    const record = Storage.addExchange(rupees - (rupees % 10));
+    alert('\u5151\u6362\u6210\u529F\uFF01\n' + record.rupees + '\u5362\u6BD4 \u2192 \u00A5' + record.yuan + '\n\u8BF7\u5BB6\u957F\u7EBF\u4E0B\u53D1\u653E\u96F6\u82B1\u94B1');
+    this.switchView('shop');
   }
 };
 

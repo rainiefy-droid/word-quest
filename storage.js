@@ -1,5 +1,5 @@
 const Storage = {
-  VERSION: 2,
+  VERSION: 3,
   currentUser: null,
 
   userKey(username) {
@@ -57,7 +57,11 @@ const Storage = {
       progress: {},
       checkin: { dates: {}, streak: 0, total: 0 },
       mistakes: [],
-      lastActive: ''
+      lastActive: '',
+      rupees: 0,
+      achievements: {},
+      dailyEgg: null,
+      exchanges: []
     };
   },
 
@@ -89,8 +93,13 @@ const Storage = {
         difficulty: 'bronze',
         bronzeClears: 0,
         silverClears: 0,
-        goldClears: 0
+        goldClears: 0,
+        wordMastery: {}
       };
+      this.save(data);
+    }
+    if (!data.progress[unitId].wordMastery) {
+      data.progress[unitId].wordMastery = {};
       this.save(data);
     }
     return data.progress[unitId];
@@ -113,6 +122,20 @@ const Storage = {
 
   unlockUnit(unitId) {
     this.setUnitProgress(unitId, { status: 'unlocked' });
+  },
+
+  markWordMastered(unitId, word) {
+    const p = this.getUnitProgress(unitId);
+    if (!p.wordMastery) p.wordMastery = {};
+    p.wordMastery[word] = true;
+    this.setUnitProgress(unitId, { wordMastery: p.wordMastery });
+  },
+
+  getMasteryRate(unitId, totalWords) {
+    const p = this.getUnitProgress(unitId);
+    if (!p.wordMastery) return 0;
+    const mastered = Object.keys(p.wordMastery).filter(w => p.wordMastery[w]).length;
+    return mastered / (totalWords || 1);
   },
 
   recordClear(unitId, difficulty) {
@@ -186,5 +209,60 @@ const Storage = {
 
   getTotalCheckins() {
     return this.load().checkin.total;
+  },
+
+  addRupees(amount) {
+    const data = this.load();
+    data.rupees = (data.rupees || 0) + amount;
+    this.save(data);
+    return data.rupees;
+  },
+
+  getRupees() {
+    return this.load().rupees || 0;
+  },
+
+  unlockAchievement(id) {
+    const data = this.load();
+    if (!data.achievements) data.achievements = {};
+    if (data.achievements[id]) return false;
+    data.achievements[id] = new Date().toISOString().split('T')[0];
+    this.save(data);
+    return true;
+  },
+
+  getAchievements() {
+    return this.load().achievements || {};
+  },
+
+  setDailyEgg(egg) {
+    const data = this.load();
+    data.dailyEgg = egg;
+    this.save(data);
+  },
+
+  getDailyEgg() {
+    const data = this.load();
+    const today = new Date().toISOString().split('T')[0];
+    if (data.dailyEgg && data.dailyEgg.date === today) return data.dailyEgg;
+    return null;
+  },
+
+  addExchange(amount) {
+    const data = this.load();
+    if (!data.exchanges) data.exchanges = [];
+    const record = {
+      date: new Date().toISOString().split('T')[0],
+      rupees: amount,
+      yuan: Math.floor(amount / 10)
+    };
+    data.exchanges.push(record);
+    data.rupees = (data.rupees || 0) - amount;
+    this.save(data);
+    return record;
+  },
+
+  getExchanges() {
+    return this.load().exchanges || [];
   }
 };

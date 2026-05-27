@@ -13,6 +13,7 @@
       <div class="stats" id="header-stats">
         <span class="streak-fire">🔥 <span id="streak-count">0</span></span>
         <span>❤️ <span id="total-count">0</span></span>
+        <span>💰 <span id="header-rupees">0</span></span>
       </div>
     </header>
     <div id="user-bar" style="display:none;text-align:center;margin-bottom:12px;font-size:12px;color:var(--text-secondary);">
@@ -42,7 +43,9 @@
       <div id="level-container"></div>
       <div style="text-align:center;margin-top:12px;">
         <div class="sword-divider">⚔ ⚔ ⚔</div>
-        <button class="btn btn-secondary btn-small" data-view="mistakes">📜 错题卷轴</button>
+        <button class="btn btn-secondary btn-small" data-view="achievements">🏆 成就殿堂</button>
+        <button class="btn btn-secondary btn-small" data-view="shop" style="margin-left:6px;">💰 兑换商店</button>
+        <button class="btn btn-secondary btn-small" data-view="mistakes" style="margin-left:6px;">📜 错题卷轴</button>
       </div>
     </div>
 
@@ -108,6 +111,10 @@
         <div class="result-title" id="result-title"></div>
         <div class="result-difficulty bronze" id="result-difficulty"></div>
         <div class="result-score" id="result-score"></div>
+        <div id="result-rupees" style="font-size:16px;font-weight:700;color:#c8a84e;margin-bottom:8px;display:none;"></div>
+        <div id="result-mastery" style="font-size:13px;color:var(--text-secondary);margin-bottom:8px;display:none;"></div>
+        <div id="result-achievement" style="font-size:14px;font-weight:700;color:#3a5a28;margin-bottom:8px;display:none;"></div>
+        <div id="result-egg" style="font-size:13px;color:var(--info);margin-bottom:8px;display:none;"></div>
         <div id="result-wrong"></div>
         <div class="sword-divider">⚔ ⚔ ⚔</div>
         <div class="result-actions">
@@ -122,6 +129,18 @@
       <div class="back-bar" data-view="map">◂ 返回地图</div>
       <div style="font-family:var(--font-title);font-size:16px;font-weight:700;margin-bottom:14px;color:#3a5a28;">📜 错题卷轴</div>
       <ul class="mistake-list" id="mistake-list"></ul>
+    </div>
+
+    <div id="view-achievements" class="view">
+      <div class="back-bar" data-view="map">◂ 返回地图</div>
+      <div style="font-family:var(--font-title);font-size:16px;font-weight:700;margin-bottom:14px;color:#3a5a28;">🏆 成就殿堂</div>
+      <div id="achievement-list"></div>
+    </div>
+
+    <div id="view-shop" class="view">
+      <div class="back-bar" data-view="map">◂ 返回地图</div>
+      <div style="font-family:var(--font-title);font-size:16px;font-weight:700;margin-bottom:14px;color:#3a5a28;">💰 兑换商店</div>
+      <div id="shop-content"></div>
     </div>
   </div>
 
