@@ -341,8 +341,7 @@ const App = {
       var hi = document.getElementById('hidden-letter-input');
       if (hi) {
         hi.value = '';
-        var editableCount = q.revealed.filter(function(r) { return !r; }).length;
-        hi.setAttribute('maxlength', editableCount);
+        hi.removeAttribute('maxlength');
         hi.focus();
       }
     }
@@ -374,8 +373,11 @@ const App = {
       else { this.state.userInput[i] = val[vi] || ''; vi++; }
     }
     this.highlightCurrentBox();
-    var editableCount = q.revealed.filter(function(r) { return !r; }).length;
-    if (val.length >= editableCount && this.allFilled()) {
+    var allFilled = true;
+    for (var i = 0; i < q.word.en.length; i++) {
+      if (!q.revealed[i] && !this.state.userInput[i]) { allFilled = false; break; }
+    }
+    if (allFilled) {
       var self = this;
       setTimeout(function() { self.submitAnswer(); }, 300);
     }
