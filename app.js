@@ -368,9 +368,14 @@ const App = {
     var q = this.state.testQuestions[this.state.testIndex];
     var len = q.word.en.length;
     var vi = 0;
+    var boxes = document.querySelectorAll('#letter-boxes .letter-box:not(.filled)');
     for (var i = 0; i < len; i++) {
       if (q.revealed[i]) { this.state.userInput[i] = q.revealed[i]; }
-      else { this.state.userInput[i] = val[vi] || ''; vi++; }
+      else {
+        this.state.userInput[i] = val[vi] || '';
+        if (boxes[vi]) boxes[vi].textContent = val[vi] || '';
+        vi++;
+      }
     }
     this.highlightCurrentBox();
     var allFilled = true;
