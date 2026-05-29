@@ -262,7 +262,8 @@ const App = {
       this.shuffle(indices);
       indices.slice(0, count).forEach(function(i) { revealed[i] = word[i]; });
     } else if (difficulty === 'silver') {
-      revealed[Math.floor(Math.random() * len)] = word[Math.floor(Math.random() * len)];
+      var ri = Math.floor(Math.random() * len);
+      revealed[ri] = word[ri];
     }
     return revealed;
   },
