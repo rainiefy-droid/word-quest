@@ -522,13 +522,22 @@ const App = {
   finishTest() {
     this.state.testComplete = true;
     var passed = this.state.testScore >= 8;
+    var perfect = this.state.testScore === 10;
     this.state.rupeesEarned = 0;
     if (passed) {
       Storage.recordClear(this.state.currentUnit.id, this.state.currentDifficulty);
-      this.markMasteredWords();
+      if (perfect) {
+        if (this.state.currentDifficulty === 'bronze') {
+          Storage.setUnitProgress(this.state.currentUnit.id, { difficulty: 'silver' });
+        } else if (this.state.currentDifficulty === 'silver') {
+          Storage.setUnitProgress(this.state.currentUnit.id, { difficulty: 'gold' });
+        } else if (this.state.currentDifficulty === 'gold') {
+          Storage.setUnitProgress(this.state.currentUnit.id, { difficulty: 'mastered' });
+          this.unlockNextUnit();
+        }
+      }
       this.rewardRupees();
       this.checkAchievements();
-      this.unlockNextUnit();
     }
     Storage.checkin();
     this.dailyEggCheck();
@@ -536,23 +545,12 @@ const App = {
     this.renderResult(passed);
   },
 
-  markMasteredWords() {
-    if (this.state.currentDifficulty !== 'gold') return;
-    var unitId = this.state.currentUnit.id;
-    var self = this;
-    this.state.testResults.forEach(function(r) {
-      if (r.correct) Storage.markWordMastered(unitId, r.word);
-    });
-  },
-
   unlockNextUnit() {
     var curId = this.state.currentUnit.id;
     var idx = this.units.findIndex(function(u) { return u.id === curId; });
     if (idx === -1) return;
     var next = this.units[idx + 1];
-    if (!next) return;
-    var masteryRate = Storage.getMasteryRate(curId, this.state.currentUnit.words.length);
-    if (masteryRate >= 0.8) Storage.unlockUnit(next.id);
+    if (next) Storage.unlockUnit(next.id);
   },
 
   rewardRupees() {
@@ -611,13 +609,13 @@ const App = {
   renderResult(passed) {
     document.getElementById('result-emoji').textContent = passed ? '\uD83C\uDF89' : '\uD83D\uDCAA';
     document.getElementById('result-title').textContent = passed ? '试炼通过！' : '继续加油！';
-    document.getElementById('result-score').textContent = '得分：' + this.state.testScore + ' / ' + this.state.testQuestions.length + '（需 \u2265 8 通关）';
-    var totalWords = this.state.currentUnit.words.length;
-    var masteryRate = Storage.getMasteryRate(this.state.currentUnit.id, totalWords);
-    var masteryPct = Math.round(masteryRate * 100);
+    var nextHint = '';
+    if (this.state.currentDifficulty === 'bronze') nextHint = '，全对升白银';
+    else if (this.state.currentDifficulty === 'silver') nextHint = '，全对升黄金';
+    else if (this.state.currentDifficulty === 'gold') nextHint = '，全对解锁下一关';
+    document.getElementById('result-score').textContent = '得分：' + this.state.testScore + ' / ' + this.state.testQuestions.length + '（需 \u2265 8 通关' + nextHint + '）';
     var masteryEl = document.getElementById('result-mastery');
-    masteryEl.textContent = '词库掌握率：' + masteryPct + '% (' + Math.round(masteryRate * totalWords) + '/' + totalWords + ') （需 \u2265 80% 解锁下一关）';
-    masteryEl.style.display = 'block';
+    masteryEl.style.display = 'none';
     var rupeeMsg = document.getElementById('result-rupees');
     if (this.state.rupeesEarned > 0) {
       rupeeMsg.textContent = '+ ' + this.state.rupeesEarned + ' 卢比 = \u00A5' + (this.state.rupeesEarned / 10);
@@ -711,8 +709,15 @@ const App = {
       '<div style="font-size:14px;color:var(--text-secondary);">= \u00A5' + (rupees / 10) + '</div></div>' +
       '<div style="margin-bottom:12px;font-size:13px;color:var(--text-secondary);">汇率：10卢比 = \u00A51 零花钱</div>' +
       '<button class="btn btn-primary" style="width:100%;" onclick="App.doExchange()" ' + (rupees < 10 ? 'disabled' : '') + '>申请兑换 \u00A5' + Math.floor(rupees / 10) + '</button>' +
-      (exchanges.length > 0 ? '<div style="margin-top:20px;font-size:14px;font-weight:700;color:#3a5a28;">兑换记录</div>' +
-      exchanges.slice(-5).reverse().map(function(e) { return '<div style="padding:8px;background:var(--card);border:1px solid var(--border);border-radius:var(--radius-sm);margin-top:6px;font-size:13px;">' + e.date + ' \u00B7 ' + e.rupees + '卢比 \u2192 \u00A5' + e.yuan + '</div>'; }).join('') : '');
+      '<div style="margin-top:8px;font-size:11px;color:var(--text-tertiary);text-align:center;">家长在同一设备查看此页面即可看到兑换请求</div>' +
+      (exchanges.length > 0 ? '<div style="margin-top:24px;font-size:14px;font-weight:700;color:#3a5a28;border-bottom:1px solid var(--border);padding-bottom:6px;">\uD83D\uDCDC 兑换记录（家长核实后线下发放）</div>' +
+      exchanges.slice(-10).reverse().map(function(e, i) {
+        var isNew = i === 0;
+        return '<div style="padding:10px 12px;background:' + (isNew ? 'var(--warning-bg)' : 'var(--card)') + ';border:' + (isNew ? '2px solid var(--warning)' : '1px solid var(--border)') + ';border-radius:var(--radius-sm);margin-top:8px;font-size:13px;">' +
+          '<strong>' + e.date + '</strong> \u00B7 ' + e.rupees + '卢比 \u2192 <strong style="color:#c8a84e;">\u00A5' + e.yuan + '</strong>' +
+          (isNew ? ' <span style="color:var(--warning);font-size:11px;">待发放</span>' : ' <span style="color:var(--success);font-size:11px;">\u2705 已记录</span>') +
+          '</div>';
+      }).join('') : '');
   },
 
   doExchange() {
@@ -720,7 +725,6 @@ const App = {
     if (rupees < 10) return;
     var amount = rupees - (rupees % 10);
     var record = Storage.addExchange(amount);
-    alert('兑换成功！\n' + record.rupees + '卢比 \u2192 \u00A5' + record.yuan + '\n请家长线下发放零花钱');
     this.switchView('shop');
   }
 };
