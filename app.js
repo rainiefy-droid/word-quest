@@ -554,16 +554,23 @@ const App = {
   },
 
   rewardRupees() {
+    var unitId = this.state.currentUnit.id;
+    var diff = this.state.currentDifficulty;
+    if (Storage.hasEarnedRupees(unitId, diff)) {
+      this.state.rupeesEarned = 0;
+      return;
+    }
     var r = 10;
-    if (this.state.currentDifficulty === 'gold') r = 20;
+    if (diff === 'gold') r = 20;
     if (this.state.testScore === 10) r = 30;
     var streak = Storage.getCheckinStreak();
     r += streak * 3;
     var data = Storage.load();
-    var isFirstClear = !(data.progress[this.state.currentUnit.id] && data.progress[this.state.currentUnit.id].status === 'completed');
+    var isFirstClear = !(data.progress[unitId] && data.progress[unitId].status === 'completed');
     if (isFirstClear) r += 50;
     this.state.rupeesEarned = r;
     Storage.addRupees(r);
+    Storage.markRupeesEarned(unitId, diff);
   },
 
   checkAchievements() {
@@ -619,6 +626,9 @@ const App = {
     var rupeeMsg = document.getElementById('result-rupees');
     if (this.state.rupeesEarned > 0) {
       rupeeMsg.textContent = '+ ' + this.state.rupeesEarned + ' 卢比 = \u00A5' + (this.state.rupeesEarned / 10);
+      rupeeMsg.style.display = 'block';
+    } else if (passed) {
+      rupeeMsg.textContent = '赚卢比要向前走哦';
       rupeeMsg.style.display = 'block';
     } else { rupeeMsg.style.display = 'none'; }
     var achMsg = document.getElementById('result-achievement');
