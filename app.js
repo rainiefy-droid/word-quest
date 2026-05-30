@@ -472,6 +472,7 @@ const App = {
   },
 
   continueAfterAnswer() {
+    try {
     var q = this.state.testQuestions[this.state.testIndex];
     var fb = this.state.feedback;
     if (fb && !fb.correct && this.state.testAttempt < 2) {
@@ -491,6 +492,7 @@ const App = {
       this.state.feedback = null;
       this.renderTestQuestion();
     } else { this.finishTest(); }
+    } catch(e) { alert('出错了：' + e.message); }
   },
 
   updateTestActions() {
@@ -520,6 +522,7 @@ const App = {
   },
 
   finishTest() {
+    try {
     this.state.testComplete = true;
     var passed = this.state.testScore >= 8;
     var perfect = this.state.testScore === 10;
@@ -543,6 +546,7 @@ const App = {
     this.dailyEggCheck();
     this.switchView('result');
     this.renderResult(passed);
+    } catch(e) { alert('出错了：' + e.message); }
   },
 
   unlockNextUnit() {
