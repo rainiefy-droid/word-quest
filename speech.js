@@ -1,22 +1,24 @@
 const Speech = {
   voice: null,
-  voicesLoaded: false,
+  ready: false,
 
   init() {
     if (!('speechSynthesis' in window)) return;
-    const loadVoices = () => {
-      this.voice = this.pickBestVoice();
-      this.voicesLoaded = true;
-    };
-    loadVoices();
-    speechSynthesis.onvoiceschanged = loadVoices;
+    this.loadVoices();
+    speechSynthesis.onvoiceschanged = () => this.loadVoices();
   },
 
-  pickBestVoice() {
+  loadVoices() {
     const voices = speechSynthesis.getVoices();
-    if (!voices.length) return null;
+    if (!voices.length) return;
+    this.voice = this.pickBestVoice(voices);
+    this.ready = true;
+  },
 
+  pickBestVoice(voices) {
+    if (!voices || !voices.length) return null;
     const enVoices = voices.filter(v => v.lang.startsWith('en'));
+    if (!enVoices.length) return null;
 
     const qualityKeywords = ['natural', 'neural', 'premium', 'enhanced', 'wavenet', 'google'];
     for (const kw of qualityKeywords) {
@@ -35,33 +37,33 @@ const Speech = {
 
   speak(word) {
     if (!('speechSynthesis' in window)) return false;
-    if (!this.voicesLoaded) this.init();
 
     speechSynthesis.cancel();
 
     const doSpeak = () => {
-      if (this.voicesLoaded && !this.voice) {
-        this.voice = this.pickBestVoice();
-      }
-
       const utterance = new SpeechSynthesisUtterance(word);
       utterance.lang = 'en-US';
-      utterance.rate = 0.88;
+      utterance.rate = 0.9;
       utterance.pitch = 1;
       utterance.volume = 1;
 
+      if (!this.voice) {
+        const voices = speechSynthesis.getVoices();
+        if (voices.length) this.voice = this.pickBestVoice(voices);
+      }
       if (this.voice) utterance.voice = this.voice;
-
-      speechSynthesis.speak(utterance);
 
       const resumeInterval = setInterval(() => {
         speechSynthesis.resume();
-      }, 100);
+      }, 150);
+
       utterance.onend = () => clearInterval(resumeInterval);
       utterance.onerror = () => clearInterval(resumeInterval);
+
+      speechSynthesis.speak(utterance);
     };
 
-    setTimeout(doSpeak, 80);
+    setTimeout(doSpeak, 100);
     return true;
   },
 
